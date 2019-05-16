@@ -1,7 +1,8 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name="easyautotrans",
+    packages=find_packages(),
     install_requires=[
         "pyperclip",
         "googletrans"
