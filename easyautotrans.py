@@ -40,7 +40,6 @@ def watch_clipboard(func):
 
 
 def modify_text_for_trancerate(text):
-    text = pyperclip.paste()
     # 段落以外の改行を削除
     text = text.replace(".\n", "\t")
     text = text.replace("\n", " ")
