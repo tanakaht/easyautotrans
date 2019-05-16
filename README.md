@@ -1,5 +1,11 @@
 # easyautotrans
 
+## Install
 ```
-pip install -r requirements.txt
+pip install git+https://github.com/tanakaht/easyautotrans
+```
+
+## Usage
+```
+$ easy-auto-trans
 ```
