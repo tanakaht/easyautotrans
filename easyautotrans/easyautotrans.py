@@ -81,7 +81,7 @@ def print_and_write(text, f):
     print(text)
     f.write(text)
 
-if __name__ == '__main__':
+def main():
     parser = create_parser()
     args = parser.parse_args()
     if args.mode == 'print':
@@ -92,3 +92,6 @@ if __name__ == '__main__':
     elif args.mode == 'print_and_write':
         with open(args.file, 'w') as f:
             watch_clipboard(partial(print_and_write, f=f))
+
+if __name__ == '__main__':
+  main()
