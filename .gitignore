@@ -125,3 +125,4 @@ dmypy.json
 # Project ignore
 .DS_Store
 .vscode
+.idea
