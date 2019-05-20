@@ -26,17 +26,21 @@ def create_parser():
 # clip変更のたびfunc(clip)実行
 def watch_clipboard(func):
     clip_tmp = pyperclip.paste()
-    while True:
-        clip_now = pyperclip.paste()
-        if clip_tmp == clip_now:
-            continue
-        try:
-            print("copied")
-            func(text=clip_now)
-        except Exception as e:
-            print(e)
-        clip_tmp = clip_now
-        time.sleep(1)
+    try:
+        while True:
+            clip_now = pyperclip.paste()
+            if clip_tmp == clip_now:
+                continue
+            try:
+                print("copied")
+                func(text=clip_now)
+            except Exception as e:
+                print(e)
+            clip_tmp = clip_now
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\nBye.")
+        sys.exit(0)
 
 
 def modify_text_for_trancerate(text):
