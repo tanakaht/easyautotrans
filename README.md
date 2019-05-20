@@ -10,3 +10,5 @@ pip install git+https://github.com/tanakaht/easyautotrans
 ```
 $ easy-auto-trans
 ```
+
+Pressing `Ctrl+C` to exit this program.

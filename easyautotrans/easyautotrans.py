@@ -26,20 +26,24 @@ def create_parser():
 # clip変更のたびfunc(clip)実行
 def watch_clipboard(func):
     clip_tmp = pyperclip.paste()
-    while True:
-        clip_now = pyperclip.paste()
-        if clip_tmp == clip_now:
-            print("give me text on clipboard... [quit:Ctrl+C]", end='\r')
-            continue
-        try:
-            print("find text on clipboard! translating into Japanese...")
-            # 翻訳
-            en_text = trans_text(modify_text_for_translate(clip_now))
-            func(text=en_text)
-        except Exception as e:
-            print(e)
-        clip_tmp = clip_now
-        time.sleep(1)
+    print("give me text on clipboard... [quit:Ctrl+C]", end='\r')
+    try:
+        while True:
+            clip_now = pyperclip.paste()
+            if clip_tmp == clip_now:
+                continue
+            try:
+                print("find text on clipboard! translating into Japanese...")
+                # 翻訳
+                en_text = trans_text(modify_text_for_translate(clip_now))
+                func(text=en_text)
+            except Exception as e:
+                print(e)
+            clip_tmp = clip_now
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("\nBye.")
+        sys.exit(0)
 
 def modify_text_for_translate(input_text):
     dic = {
