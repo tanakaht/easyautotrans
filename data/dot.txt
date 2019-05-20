@@ -1,0 +1,8 @@
+cf.
+e.g.
+i.e.
+Mr.
+Ms.
+Mrs.
+Dr.
+\d+\.\d+
