@@ -48,7 +48,8 @@ def watch_clipboard(func):
 
 def modify_text_for_translate(input_text):
     dic = {
-        '-\s+': '', # 行区切りのハイフンを全消去
+        '- ': '', # 行区切りのハイフンを全消去
+        '-\n': '',
         '\n': ' ' # 改行->空白変換
     }
     prg = re.compile('|'.join(dic.keys()))
