@@ -6,6 +6,7 @@ import pyperclip
 from googletrans import Translator
 import argparse
 from functools import partial
+from termcolor import cprint
 # from pync import Notifier 通知に出そうとしたが見にくかった
 
 SAVE_PATH = Path('~/paper_translated/tmp/tmp.md').expanduser()
@@ -30,10 +31,10 @@ def watch_clipboard(func):
         while True:
             clip_now = pyperclip.paste()
             if clip_tmp == clip_now:
-                print("give me text on clipboard... [quit:Ctrl+C]", end='\r')
+                cprint("give me text on clipboard... [quit:Ctrl+C]", attrs=['bold'], end='\r')
                 continue
             try:
-                print("find text on clipboard! translating into Japanese...")
+                cprint("find text on clipboard! translating into Japanese...", attrs=['bold'])
                 # 翻訳
                 en_text = trans_text(modify_text_for_translate(clip_now))
                 func(text=en_text)
@@ -47,7 +48,8 @@ def watch_clipboard(func):
 
 def modify_text_for_translate(input_text):
     dic = {
-        '-\s+': '', # 行区切りのハイフンを全消去
+        '- ': '', # 行区切りのハイフンを全消去
+        '-\n': '',
         '\n': ' ' # 改行->空白変換
     }
     prg = re.compile('|'.join(dic.keys()))
