@@ -55,7 +55,7 @@ def modify_text_for_translate(input_text):
     # 一気に整形
     text = prg.sub(formatter, input_text)
     # 文末はダブル改行
-    text = text.replace(". ", ".\n\n")
+    text = re.sub('[!?.:][\"\']?', '\g<0>\n\n', text)
     return text
 
 # 原文こみ
@@ -74,7 +74,13 @@ def write_translated_text(text, io_file):
 def print_and_write(text, io_file):
     write2files(text, sys.stdout, io_file)
 
+# 書き出し関数
 def write2files(text, *files):
+    """
+    :param text: 出力したいテキスト(str)
+    :param files: 出力したいファイル(like IOBase)
+    :return: None, filesにtextを書き出す
+    """
     if files:
         for f in files:
             print(text, file=f, flush=True)
