@@ -32,6 +32,7 @@ def watch_clipboard(func):
             clip_now = pyperclip.paste()
             if clip_tmp == clip_now:
                 cprint("give me text on clipboard... [quit:Ctrl+C]", attrs=['bold'], end='\r')
+                time.sleep(1)
                 continue
             try:
                 cprint("find text on clipboard! translating into Japanese...", attrs=['bold'])
@@ -41,7 +42,6 @@ def watch_clipboard(func):
             except Exception as e:
                 print(e)
             clip_tmp = clip_now
-            time.sleep(1)
     except KeyboardInterrupt:
         print("\nBye.")
         sys.exit(0)
