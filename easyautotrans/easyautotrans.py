@@ -6,8 +6,8 @@ import pyperclip
 from googletrans import Translator
 import argparse
 from functools import partial
-from termcolor import cprint
-# from pync import Notifier 通知に出そうとしたが見にくかった
+from termcolor import cprint, HIGHLIGHTS
+
 
 SAVE_PATH = Path('~/paper_translated/tmp/tmp.md').expanduser()
 
@@ -22,10 +22,12 @@ def create_parser():
                          print_and_write:どっちも""")
     parser.add_argument('--file', type=str,  default=str(SAVE_PATH),
                         help="書き込み先を指定")
+    parser.add_argument('--on_color', type=str,  default=None,
+                        help="find text ~ の下地の色を指定") 
     return parser
 
 # clip変更のたびfunc(clip)実行
-def watch_clipboard(func):
+def watch_clipboard(func, on_color=None):
     clip_tmp = pyperclip.paste()
     try:
         while True:
@@ -35,7 +37,7 @@ def watch_clipboard(func):
                 time.sleep(1)
                 continue
             try:
-                cprint("find text on clipboard! translating into Japanese...", attrs=['bold'])
+                cprint("find text on clipboard! translating into Japanese...", on_color=on_color, attrs=['bold'])
                 # 翻訳
                 en_text = trans_text(modify_text_for_translate(clip_now))
                 func(text=en_text)
@@ -98,13 +100,19 @@ def main():
         'write': write_translated_text,
         'print_and_write': print_and_write
     }
+    
     try:
         writer = modes[args.mode]
     except KeyError:
         print(f"KeyError: no such mode with {args.mode}")
+        return
+    
+    if not args.on_color in HIGHLIGHTS:
+        print(f"KeyError: no such color with {args.on_color}")
+        return
 
     if args.mode == 'print':
-        watch_clipboard(writer)
+        watch_clipboard(writer, on_color=args.on_color)
 
     else:
         print(f'SAVE PATH: "{args.file}"')
@@ -113,7 +121,7 @@ def main():
             save_dir.mkdir(parents=True)
 
         with open(args.file, 'w') as f:
-            watch_clipboard(partial(writer, io_file=f))
+            watch_clipboard(partial(writer, io_file=f), on_color=args.on_color)
 
 if __name__ == '__main__':
   main()
