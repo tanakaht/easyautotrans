@@ -107,7 +107,7 @@ def main():
         print(f"KeyError: no such mode with {args.mode}")
         return
     
-    if not args.on_color in HIGHLIGHTS:
+    if not (args.on_color in HIGHLIGHTS or args.on_color is None):
         print(f"KeyError: no such color with {args.on_color}")
         return
 
