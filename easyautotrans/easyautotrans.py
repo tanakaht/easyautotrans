@@ -33,11 +33,11 @@ def watch_clipboard(func, on_color=None):
         while True:
             clip_now = pyperclip.paste()
             if clip_tmp == clip_now:
-                cprint("give me text on clipboard... [quit:Ctrl+C]", attrs=['bold'], end='\r')
+                cprint("give me text on clipboard... [quit:Ctrl+C]", 'green', attrs=['bold'], end='\r')
                 time.sleep(1)
                 continue
             try:
-                cprint("find text on clipboard! translating into Japanese...", on_color=on_color, attrs=['bold'])
+                cprint("find text on clipboard! translating into Japanese..." , 'green', on_color=on_color, attrs=['bold'])
                 # 翻訳
                 en_text = trans_text(modify_text_for_translate(clip_now))
                 func(text=en_text)
