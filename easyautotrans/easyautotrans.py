@@ -58,8 +58,38 @@ def modify_text_for_translate(input_text):
     formatter = lambda match: dic[match.group(0)]
     # 一気に整形
     text = prg.sub(formatter, input_text)
+
+    # .を含む特殊な表現を一時的に置換する
+    dic = {
+        'e.g.': 'e_g_',
+        'et al.': 'et al_',
+        'cf.': 'cf_',
+        'i.e.': 'i_e_',
+        'Fig.': 'Fig_',
+        '.js': '_js'
+    }
+    # .を含む数字群の追加
+    for i in range(10):
+        dic[f'{i}.'] = f'{i}_'
+
+    # 一時的に置換
+    for word in dic:
+        text = text.replace(word, dic[word])
+
     # 文末はダブル改行
-    text = re.sub('[!?.:][\"\']?', '\g<0>\n\n', text)
+    text = re.sub('[.:;][\"\']?', '\g<0>\n\n', text)
+    
+    # .を含む特殊な表現を元に戻す
+    for word in dic:
+        text = text.replace(dic[word], word)
+
+    # 改行後に行頭が小文字になるのは改行がおかしいので元に戻す
+    for match in re.finditer('\n\n [a-z0-9]' ,text):
+        text = re.sub('\n\n [a-z0-9]', match.group(0)[-2:], text, count=1)
+
+    # 行頭のスペースを取り除く
+    text = text.replace('\n\n ', '\n\n')
+
     return text
 
 # 原文こみ
