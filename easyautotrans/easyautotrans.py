@@ -52,7 +52,9 @@ def modify_text_for_translate(input_text):
     dic = {
         '- ': '', # 行区切りのハイフンを全消去
         '-\n': '',
-        '\n': ' ' # 改行->空白変換
+        '\n': ' ',# 改行->空白変換
+        '\r': '', # Windows由来のCRを全消去
+        '-\r\n': '',
     }
     prg = re.compile('|'.join(dic.keys()))
     formatter = lambda match: dic[match.group(0)]
