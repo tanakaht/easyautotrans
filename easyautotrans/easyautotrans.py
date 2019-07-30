@@ -78,13 +78,15 @@ def modify_text_for_translate(input_text):
         text = text.replace(word, dic[word])
 
     # 文末はダブル改行
-    text = re.sub('[.:;][”\"\']?', '\g<0>\n\n', text)
+    text = re.sub('[.:;][)”\"\']?', '\g<0>\n\n', text)
     
     # .を含む特殊な表現を元に戻す
     for word in dic:
         text = text.replace(dic[word], word)
 
     # 改行後に行頭が小文字になるのは改行がおかしいので元に戻す
+    for match in re.finditer('\n\n[a-z/]' ,text):
+        text = re.sub('\n\n[a-z/]', match.group(0)[-1:], text, count=1)
     for match in re.finditer('\n\n [a-z0-9]' ,text):
         text = re.sub('\n\n [a-z0-9]', match.group(0)[-2:], text, count=1)
 
