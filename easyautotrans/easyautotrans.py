@@ -85,7 +85,7 @@ def modify_text_for_translate(input_text):
         text = text.replace(word, dic[word])
 
     # 文末はダブル改行
-    text = re.sub('[.:;][)”\"\']?', '\g<0>\n\n', text)
+    text = re.sub('[.][)”\"\']?', '\g<0>\n\n', text)
     
     # .を含む特殊な表現を元に戻す
     for word in dic:
