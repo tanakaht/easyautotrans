@@ -6,7 +6,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         "pyperclip",
-        "googletrans",
+        "googletrans==4.0.0rc1",
         "termcolor"
     ],
     entry_points={
