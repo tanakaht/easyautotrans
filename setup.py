@@ -1,14 +1,14 @@
 from setuptools import setup, find_packages
 
+def _requires_from_file(filename):
+    return open(filename).read().splitlines()
+
 setup(
     name="easyautotrans",
-    version='0.1.0',
+    version='0.2.0',
+    url="https://github.com/tanakaht/easyautotrans",
     packages=find_packages(),
-    install_requires=[
-        "pyperclip",
-        "googletrans==4.0.0rc1",
-        "termcolor"
-    ],
+    install_requires=_requires_from_file('requirements.txt'),
     entry_points={
         "console_scripts": [
             "easy-auto-trans = easyautotrans.easyautotrans:main"
