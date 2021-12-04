@@ -1,12 +1,27 @@
 import time
 import pyperclip
-from googletrans import Translator as GoogleTranslator
+from googletrans import Translator as GoogleTrans
 import argparse
 from termcolor import cprint
 from typing import List, Tuple, Optional
 import nltk
+import deepl
+import os
+import re
+import traceback
+import getpass
+from logging import LogRecord, getLogger, StreamHandler, FileHandler, DEBUG
 
 nltk.download('punkt', quiet=True)
+
+if not os.path.exists(os.path.expanduser("~/.easyautotrans")):
+    os.mkdir(os.path.expanduser('~/.easyautotrans'))
+logger = getLogger(__name__)
+handler = FileHandler(os.path.expanduser("~/.easyautotrans/log"))
+handler.setLevel(DEBUG)
+logger.setLevel(DEBUG)
+logger.addHandler(handler)
+
 
 def create_parser():
     parser = argparse.ArgumentParser(
@@ -59,20 +74,99 @@ class StdoutPrinter(Printer):
 
 class Translator:
     def __init__(self, mode="googletrans"):
-        if mode == "googletrans":
-            self.translator = GoogleTranslator()
-        elif mode == "deepl":
-            raise NotImplementedError("開発中")
+        self.mode = mode
+        self.translator = self.get_translator()
+        dic = {
+            # '- ': '', # 行区切りのハイフンを全消去 <-これ何?
+            # for CRLF
+            '-\r\n': '', # 行区切りのハイフン除去
+            '\r\n': ' ', # 改行->空白変換
+            # for CR
+            '-\r': '', # 行区切りのハイフン除去
+            '\r': ' ', # 改行->空白変換
+            # for LF
+            '-\n': '', # 行区切りのハイフン除去
+            '\n': ' '  # 改行->空白変換
+        }
+        self.prg = re.compile('|'.join(dic.keys()))
+        self.formatter = lambda match: dic[match.group(0)]
+
+    def get_translator(self):
+        raise NotImplementedError
 
     def translate(self, raw_text: str) -> List[Tuple[str]]:
         ret = []
-        # TODO: 余分な改行とハイフン等を削除する?(modify_text_for_translate相当の操作)
-        raw_sentences = nltk.sent_tokenize(raw_text)
-        for raw_sentence in raw_sentences:
-            translated_sentence = self.translator.translate(raw_sentence, dest = 'ja').text
-            ret.append((raw_sentence, translated_sentence))
-        return ret
+        sentences = nltk.sent_tokenize(self.modify_text(raw_text))
+        try:
+            for sentence in sentences:
+                translated_sentence = self._translate(sentence)
+                ret.append((sentence, translated_sentence))
+            return ret
+        except Exception as e: # TODO: errorの種類をちゃんとする
+            logger.info(f"{e} {self}")
+            logger.info(traceback.format_exc()+"\n\n")
+            print(e)
+            return ret
 
+    def _translate(self, sentence: str) -> str:
+        raise NotImplementedError
+
+    def modify_text(self, raw_text: str) -> str:
+        # 一気に整形
+        text = self.prg.sub(self.formatter, raw_text)
+        return raw_text
+
+
+class GoogleTranslator(Translator):
+    def get_translator(self):
+        return GoogleTrans()
+
+    def _translate(self, sentence: str) -> str:
+        # TODO: エラーハンドリング
+        try:
+            translated_sentence = self.translator.translate(sentence, dest = 'ja').text
+        except Exception as e:
+            logger.info(f"{e} {self}")
+            logger.info(traceback.format_exc()+"\n\n")
+            translated_sentence = str(e) # TODO: retry
+        return translated_sentence
+
+
+class DeeplTranslator(Translator):
+    def get_translator(self):
+        # TODO: errorの際、キーを取り直す
+        auth_key = self.get_auth_key()
+        return deepl.Translator(auth_key)
+
+    def get_auth_key(self) -> str:
+        try:
+            return self.load_auth_key()
+        except FileNotFoundError:
+            self.save_auth_key()
+            return self.load_auth_key()
+
+    def save_auth_key(self) -> None:
+        auth_key = getpass.getpass("auth key> ")
+        with open(os.path.expanduser("~/.easyautotrans/deepl_auth_key"), "w") as f:
+            f.write(auth_key)
+
+    def load_auth_key(self) -> str:
+        if os.path.exists(os.path.expanduser("~/.easyautotrans/deepl_auth_key")):
+            with open(os.path.expanduser("~/.easyautotrans/deepl_auth_key"), "r") as f:
+                auth_key = f.read()
+            return auth_key
+        else:
+            raise FileNotFoundError
+
+    def _translate(self, sentence: str) -> str:
+        # TODO: エラーハンドリング
+        try:
+            translated_sentence = self.translator.translate_text(sentence, target_lang="ja").text
+        except Exception as e:
+            logger.info(f"{e} {self}")
+            logger.info(traceback.format_exc()+"\n\n")
+            translated_sentence = str(e) # TODO: retry
+        return translated_sentence
 
 class ClipboardListener:
     def __init__(self, printer: Printer, translator: Translator):
@@ -105,6 +199,9 @@ class ClipboardListener:
                     except KeyboardInterrupt:
                         raise KeyboardInterrupt
                     except Exception as e:
+                        logger.info(f"{e} {self}")
+                        logger.info(traceback.format_exc()+"\n\n")
+                        translated_sentence = str(e) # TODO: retry
                         if err_cnt == self.n_retry-1:
                             self.printer.print_event(f"failed({e})")
                         else:
@@ -116,9 +213,12 @@ class ClipboardListener:
 def main():
     parser = create_parser()
     args = parser.parse_args()
-    # TODO: argsで何かいじる?
+    assert args.translator in "googletrans deepl".split()
     printer = StdoutPrinter()
-    translator = Translator(mode=args.translator)
+    if args.translator=="googletrans":
+        translator = GoogleTranslator()
+    elif args.translator=="deepl":
+        translator = DeeplTranslator()
     listener = ClipboardListener(printer, translator)
     listener.run()
 
