@@ -114,7 +114,7 @@ class Translator:
     def modify_text(self, raw_text: str) -> str:
         # 一気に整形
         text = self.prg.sub(self.formatter, raw_text)
-        return raw_text
+        return text
 
 
 class GoogleTranslator(Translator):
