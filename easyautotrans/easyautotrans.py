@@ -11,6 +11,9 @@ import re
 import traceback
 import getpass
 from logging import LogRecord, getLogger, StreamHandler, FileHandler, DEBUG
+import requests
+from urllib.parse import quote, unquote
+import html
 
 nltk.download('punkt', quiet=True)
 
@@ -26,14 +29,15 @@ logger.addHandler(handler)
 def create_parser():
     parser = argparse.ArgumentParser(
         description="コピーした英文を翻訳")
-    parser.add_argument('--translator', type=str,  default='googletrans',
+    parser.add_argument('subcommand', type=str,  default='run', choices=["run", "login"], nargs="?",
+                        help="""run or login(default: run)""")
+    parser.add_argument('--translator', type=str,  default='googletrans', choices=["deepl", "googletrans"],
                         help="""Choose your translator from googletrans, or deepl.(default:googletrans)""")
+    parser.add_argument('--printer', type=str,  default='bionicreading', choices=["stdout", "bionicreading"],
+                        help="""stdout or bionicreading.(default:bionicreading)""")
     return parser
 
 class Printer:
-    """
-    特に意味ない。Stdout以外のUI開発したくなった時のためにIFだけ確認。
-    """
     def print_event(self, s: str, **kwargs):
         raise NotImplementedError
 
@@ -70,6 +74,63 @@ class StdoutPrinter(Printer):
     def print_log(self, s: str, **kwargs):
         if self.output_log:
             cprint(s, self.log_color, **kwargs)
+
+
+class BionicReadingPrinter(StdoutPrinter):
+    def __init__(self, event_color: Optional[str]="green", text_color: Optional[str]=None, log_color: Optional[str]=None, output_log=False):
+        super().__init__()
+        self.event_color = event_color
+        self.text_color = text_color
+        self.log_color = log_color
+        self.output_log = output_log
+        self.re_ptn = re.compile(r"\$\$\$\$\$\$(.*)\$\$\$\$\$\$")
+        self.auth_key = self.get_auth_key()
+
+    def print_content(self, content: List[Tuple[str]], **kwargs):
+        # API叩くの勿体無いのでまとめて叩く
+        raw_sentences = [raw_sentence for raw_sentence, translated_sentence in content]
+        try:
+            bionized = self.bionize("$$$".join(raw_sentences))
+            raw_sentences = bionized.split("$$$")
+        except Exception as e:
+            print(e)
+            pass
+        for raw_sentence, (_, translated_sentence) in zip(raw_sentences, content):
+            cprint(raw_sentence, self.text_color, **kwargs)
+            cprint(translated_sentence, self.text_color, **kwargs)
+            cprint("", self.text_color, **kwargs)
+
+    def get_auth_key(self) -> str:
+        if os.path.exists(os.path.expanduser("~/.easyautotrans/bionic_reading_api_key")):
+            with open(os.path.expanduser("~/.easyautotrans/bionic_reading_api_key"), "r") as f:
+                auth_key = f.read()
+            return auth_key
+        else:
+            raise FileNotFoundError("no auth key is provided for bionic reading api. 'easy-auto-trans login' first'")
+
+    def save_auth_key(self) -> None:
+        # TODO: 平文やめい
+        auth_key = getpass.getpass("enter auth key for bionic reading api (or press enter to skip)> ")
+        if auth_key:
+            with open(os.path.expanduser("~/.easyautotrans/bionic_reading_api_key"), "w") as f:
+                f.write(auth_key)
+
+    def bionize(self, s: str) -> str:
+        url = "https://bionic-reading1.p.rapidapi.com/convert"
+        payload = f"content=$$$$$${quote(s)}$$$$$$&response_type=html&request_type=html&fixation=1&saccade=10"
+        headers = {
+            "content-type": "application/x-www-form-urlencoded",
+            "X-RapidAPI-Host": "bionic-reading1.p.rapidapi.com",
+            "X-RapidAPI-Key": self.auth_key
+        }
+        response = requests.request("POST", url, data=payload, headers=headers)
+        # BOLD = '\033[1m'
+        # END = '\033[0m'
+        # BOLDはわかりにくい時があるので、他を薄くする。行頭太字なのでこれでいいはず
+        BOLD = '\033[0m'
+        END = '\033[2m'
+        ret = html.unescape(unquote(re.search(self.re_ptn, response.text).group(1))).replace('<b class="b bionic">', BOLD).replace("</b>", END)
+        return ret
 
 
 class Translator:
@@ -139,24 +200,19 @@ class DeeplTranslator(Translator):
         return deepl.Translator(auth_key)
 
     def get_auth_key(self) -> str:
-        try:
-            return self.load_auth_key()
-        except FileNotFoundError:
-            self.save_auth_key()
-            return self.load_auth_key()
-
-    def save_auth_key(self) -> None:
-        auth_key = getpass.getpass("auth key> ")
-        with open(os.path.expanduser("~/.easyautotrans/deepl_auth_key"), "w") as f:
-            f.write(auth_key)
-
-    def load_auth_key(self) -> str:
         if os.path.exists(os.path.expanduser("~/.easyautotrans/deepl_auth_key")):
             with open(os.path.expanduser("~/.easyautotrans/deepl_auth_key"), "r") as f:
                 auth_key = f.read()
             return auth_key
         else:
-            raise FileNotFoundError
+            raise FileNotFoundError("no auth key is provided for deepl api. 'easy-auto-trans login' first")
+
+    def save_auth_key(self) -> None:
+        # TODO: 平文やめい
+        auth_key = getpass.getpass("enter auth key for deepl api (or press enter to skip)> ")
+        if auth_key:
+            with open(os.path.expanduser("~/.easyautotrans/deepl_auth_key"), "w") as f:
+                f.write(auth_key)
 
     def _translate(self, sentence: str) -> str:
         # TODO: エラーハンドリング
@@ -213,15 +269,31 @@ class ClipboardListener:
 def main():
     parser = create_parser()
     args = parser.parse_args()
-    assert args.translator in "googletrans deepl".split()
-    printer = StdoutPrinter()
-    if args.translator=="googletrans":
-        translator = GoogleTranslator()
-    elif args.translator=="deepl":
-        translator = DeeplTranslator()
-    listener = ClipboardListener(printer, translator)
-    listener.run()
-
+    if args.subcommand=="login":
+        DeeplTranslator.save_auth_key(None)
+        BionicReadingPrinter.save_auth_key(None)
+        return
+    elif args.subcommand=="run":
+        if args.printer=="stdout":
+            printer = StdoutPrinter()
+        elif args.printer=="bionicreading":
+            try:
+                printer = BionicReadingPrinter()
+            except FileNotFoundError as e:
+                print(e)
+                print("use StdoutPrinter instead")
+                printer = StdoutPrinter()
+        if args.translator=="googletrans":
+            translator = GoogleTranslator()
+        elif args.translator=="deepl":
+            try:
+                translator = DeeplTranslator()
+            except FileNotFoundError as e:
+                print(e)
+                print("use googletrans instead")
+                translator = GoogleTranslator()
+        listener = ClipboardListener(printer, translator)
+        listener.run()
 
 if __name__ == '__main__':
     main()
