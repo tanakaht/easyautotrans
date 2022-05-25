@@ -31,8 +31,8 @@ def create_parser():
         description="コピーした英文を翻訳")
     parser.add_argument('subcommand', type=str,  default='run', choices=["run", "login"], nargs="?",
                         help="""run or login(default: run)""")
-    parser.add_argument('--translator', type=str,  default='googletrans', choices=["deepl", "googletrans"],
-                        help="""Choose your translator from googletrans, or deepl.(default:googletrans)""")
+    parser.add_argument('--translator', type=str,  default='googletrans', choices=["deepl", "googletrans", "none"],
+                        help="""Choose your translator from googletrans, deepl, or none.(default:googletrans)""")
     parser.add_argument('--printer', type=str,  default='bionicreading', choices=["stdout", "bionicreading"],
                         help="""stdout or bionicreading.(default:bionicreading)""")
     return parser
@@ -224,6 +224,16 @@ class DeeplTranslator(Translator):
             translated_sentence = str(e) # TODO: retry
         return translated_sentence
 
+
+class NoneTranslator(Translator):
+    def get_translator(self):
+        pass
+
+    def _translate(self, sentence: str) -> str:
+        translated_sentence = ""
+        return translated_sentence
+
+
 class ClipboardListener:
     def __init__(self, printer: Printer, translator: Translator):
         self.printer = printer
@@ -292,6 +302,8 @@ def main():
                 print(e)
                 print("use googletrans instead")
                 translator = GoogleTranslator()
+        elif args.translator=="none":
+            translator = NoneTranslator()
         listener = ClipboardListener(printer, translator)
         listener.run()
 
