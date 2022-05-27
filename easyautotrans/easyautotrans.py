@@ -86,8 +86,8 @@ class BionicReadingPrinter(StdoutPrinter):
         self.BOLD = '\033[0m'
         self.END = '\033[2m'
         self.re_ptn = re.compile(r"\$\$\$\$\$\$(.*)\$\$\$\$\$\$")
-        BOLD_ = self.BOLD.replace('[', '\[')
-        END_ = self.END.replace('[', '\[')
+        BOLD_ = self.BOLD.replace('[', '\[').replace("\033", "\\033")
+        END_ = self.END.replace('[', '\[').replace("\033", "\\033")
         self.re_ptn_split = re.compile(fr"\$\$\$|{BOLD_}\${END_}\$\$|{BOLD_}\$\${END_}\$|{BOLD_}\$\$\${END_}")
         self.auth_key = self.get_auth_key()
 
