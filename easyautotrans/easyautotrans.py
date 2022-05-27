@@ -86,17 +86,14 @@ class BionicReadingPrinter(StdoutPrinter):
         self.BOLD = '\033[0m'
         self.END = '\033[2m'
         self.re_ptn = re.compile(r"\$\$\$\$\$\$(.*)\$\$\$\$\$\$")
-        BOLD_ = self.BOLD.replace('[', '\[').replace("\033", "\\033")
-        END_ = self.END.replace('[', '\[').replace("\033", "\\033")
-        self.re_ptn_split = re.compile(fr"\$\$\$|{BOLD_}\${END_}\$\$|{BOLD_}\$\${END_}\$|{BOLD_}\$\$\${END_}")
         self.auth_key = self.get_auth_key()
 
     def print_content(self, content: List[Tuple[str]], **kwargs):
         # API叩くの勿体無いのでまとめて叩く
         raw_sentences = [raw_sentence for raw_sentence, translated_sentence in content]
         try:
-            bionized = self.bionize("$$$".join(raw_sentences))
-            raw_sentences = re.split(self.re_ptn_split, bionized)
+            bionized = self.bionize(" $$$ ".join(raw_sentences))
+            raw_sentences = bionized.split(" $$$ ")
         except Exception as e:
             print(e)
             pass
