@@ -83,7 +83,12 @@ class BionicReadingPrinter(StdoutPrinter):
         self.text_color = text_color
         self.log_color = log_color
         self.output_log = output_log
+        self.BOLD = '\033[0m'
+        self.END = '\033[2m'
         self.re_ptn = re.compile(r"\$\$\$\$\$\$(.*)\$\$\$\$\$\$")
+        BOLD_ = self.BOLD.replace('[', '\[')
+        END_ = self.END.replace('[', '\[')
+        self.re_ptn_split = re.compile(fr"\$\$\$|{BOLD_}\${END_}\$\$|{BOLD_}\$\${END_}\$|{BOLD_}\$\$\${END_}")
         self.auth_key = self.get_auth_key()
 
     def print_content(self, content: List[Tuple[str]], **kwargs):
@@ -91,7 +96,7 @@ class BionicReadingPrinter(StdoutPrinter):
         raw_sentences = [raw_sentence for raw_sentence, translated_sentence in content]
         try:
             bionized = self.bionize("$$$".join(raw_sentences))
-            raw_sentences = bionized.split("$$$")
+            raw_sentences = re.split(self.re_ptn_split, bionized)
         except Exception as e:
             print(e)
             pass
@@ -127,9 +132,7 @@ class BionicReadingPrinter(StdoutPrinter):
         # BOLD = '\033[1m'
         # END = '\033[0m'
         # BOLDはわかりにくい時があるので、他を薄くする。行頭太字なのでこれでいいはず
-        BOLD = '\033[0m'
-        END = '\033[2m'
-        ret = html.unescape(unquote(re.search(self.re_ptn, response.text).group(1))).replace('<b class="b bionic">', BOLD).replace("</b>", END)
+        ret = html.unescape(unquote(re.search(self.re_ptn, response.text).group(1))).replace('<b class="b bionic">', self.BOLD).replace("</b>", self.END)
         return ret
 
 
